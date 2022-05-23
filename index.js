@@ -23,6 +23,7 @@ async function run() {
     await client.connect();
     const productCollection = client.db("tooltrex").collection("products");
     const orderCollection = client.db("tooltrex").collection("orders");
+    const userCollection = client.db("tooltrex").collection("users");
 
     // create api for loaded all products
     app.get("/products", async (req, res) => {
@@ -52,6 +53,19 @@ async function run() {
     app.post("/order", async (req, res) => {
       const order = req.body;
       const result = await orderCollection.insertOne(order);
+      res.send(result);
+    });
+
+    // create api for store all users on userCollection
+    app.put("/user/:email", async (req, res) => {
+      const email = req.params.email;
+      const user = req.body;
+      const filter = { email: email };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: user,
+      };
+      const result = await userCollection.updateOne(filter, updateDoc, options);
       res.send(result);
     });
   } finally {
