@@ -22,6 +22,7 @@ async function run() {
   try {
     await client.connect();
     const productCollection = client.db("tooltrex").collection("products");
+    const orderCollection = client.db("tooltrex").collection("orders");
 
     // create api for loaded all products
     app.get("/products", async (req, res) => {
@@ -37,6 +38,13 @@ async function run() {
       const query = { _id: ObjectId(id) };
       const product = await productCollection.findOne(query);
       res.send(product);
+    });
+
+    // create api for insert order from user to database
+    app.post("/order", async (req, res) => {
+      const order = req.body;
+      const result = await orderCollection.insertOne(order);
+      res.send(result);
     });
   } finally {
   }
