@@ -40,6 +40,14 @@ async function run() {
       res.send(product);
     });
 
+    // create api for load orders for per user
+    app.get("/order", async (req, res) => {
+      const customerEmail = req.query.customerEmail;
+      const query = { customerEmail: customerEmail };
+      const orders = await orderCollection.find(query).toArray();
+      res.send(orders);
+    });
+
     // create api for insert order from user to database
     app.post("/order", async (req, res) => {
       const order = req.body;
