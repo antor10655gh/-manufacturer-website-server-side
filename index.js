@@ -19,6 +19,20 @@ const client = new MongoClient(uri, {
   serverApi: ServerApiVersion.v1,
 });
 
+const verificationJWT = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).send({ message: "Unauthorized Access" });
+  }
+  jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
+    if (err) {
+      return res.status(403).send({ message: "Forbidden Access" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+};
+
 async function run() {
   try {
     await client.connect();
@@ -43,11 +57,16 @@ async function run() {
     });
 
     // create api for load orders for per user
-    app.get("/order", async (req, res) => {
+    app.get("/order", verificationJWT, async (req, res) => {
       const customerEmail = req.query.customerEmail;
-      const query = { customerEmail: customerEmail };
-      const orders = await orderCollection.find(query).toArray();
-      res.send(orders);
+      const decodedEmail = req.decoded.email;
+      if (customerEmail === decodedEmail) {
+        const query = { customerEmail: customerEmail };
+        const orders = await orderCollection.find(query).toArray();
+        res.send(orders);
+      } else {
+        return res.status(403).send({ message: "Forbidden Access" });
+      }
     });
 
     // create api for insert order from user to database
