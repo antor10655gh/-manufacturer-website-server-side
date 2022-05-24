@@ -21,9 +21,11 @@ const client = new MongoClient(uri, {
 
 const verificationJWT = (req, res, next) => {
   const authHeader = req.headers.authorization;
+  console.log(authHeader);
   if (!authHeader) {
     return res.status(401).send({ message: "Unauthorized Access" });
   }
+  const token = authHeader.split(" ")[1];
   jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
     if (err) {
       return res.status(403).send({ message: "Forbidden Access" });
@@ -46,6 +48,12 @@ async function run() {
       const cursor = productCollection.find(query);
       const products = await cursor.toArray();
       res.send(products);
+    });
+
+    // create api for loaded all users
+    app.get("/user", verificationJWT, async (req, res) => {
+      const users = await userCollection.find().toArray();
+      res.send(users);
     });
 
     // create api for loaded single product
