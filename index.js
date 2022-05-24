@@ -21,7 +21,6 @@ const client = new MongoClient(uri, {
 
 const verificationJWT = (req, res, next) => {
   const authHeader = req.headers.authorization;
-  console.log(authHeader);
   if (!authHeader) {
     return res.status(401).send({ message: "Unauthorized Access" });
   }
@@ -109,7 +108,7 @@ async function run() {
     });
 
     // create api for set admin role
-    app.put("/user/admin/:email", async (req, res) => {
+    app.put("/user/admin/:email", verificationJWT, async (req, res) => {
       const email = req.params.email;
       const requester = req.decoded.email;
       const requesterAccount = await userCollection.findOne({
@@ -125,6 +124,13 @@ async function run() {
       } else {
         res.status(403).send({ message: "Forbidden" });
       }
+    });
+
+    // create api for add a product from dashboard
+    app.post("/products", async (req, res) => {
+      const product = req.body;
+      const result = await productCollection.insertOne(product);
+      res.send(result);
     });
   } finally {
   }
