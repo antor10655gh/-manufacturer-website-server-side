@@ -41,6 +41,19 @@ async function run() {
     const orderCollection = client.db("tooltrex").collection("orders");
     const userCollection = client.db("tooltrex").collection("users");
 
+    // create verifyAdmin function to checking user is admin or not
+    const verifyAdmin = async (req, res, next) => {
+      const requester = req.decoded.email;
+      const requesterAccount = await userCollection.findOne({
+        email: requester,
+      });
+      if (requesterAccount.role === "admin") {
+        next();
+      } else {
+        res.status(403).send({ message: "Forbidden" });
+      }
+    };
+
     // create api for loaded all products
     app.get("/products", async (req, res) => {
       const query = {};
@@ -108,26 +121,23 @@ async function run() {
     });
 
     // create api for set admin role
-    app.put("/user/admin/:email", verificationJWT, async (req, res) => {
-      const email = req.params.email;
-      const requester = req.decoded.email;
-      const requesterAccount = await userCollection.findOne({
-        email: requester,
-      });
-      if (requesterAccount.role === "admin") {
+    app.put(
+      "/user/admin/:email",
+      verificationJWT,
+      verifyAdmin,
+      async (req, res) => {
+        const email = req.params.email;
         const filter = { email: email };
         const updateDoc = {
           $set: { role: "admin" },
         };
         const result = await userCollection.updateOne(filter, updateDoc);
         res.send(result);
-      } else {
-        res.status(403).send({ message: "Forbidden" });
       }
-    });
+    );
 
     // create api for add a product from dashboard
-    app.post("/products", async (req, res) => {
+    app.post("/products", verificationJWT, async (req, res) => {
       const product = req.body;
       const result = await productCollection.insertOne(product);
       res.send(result);
