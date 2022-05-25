@@ -89,6 +89,14 @@ async function run() {
       }
     });
 
+    // create api for loaded a single order to payment
+    app.get("/order/:id", verificationJWT, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const order = await orderCollection.findOne(query);
+      res.send(order);
+    });
+
     // create api for insert order from user to database
     app.post("/order", async (req, res) => {
       const order = req.body;
