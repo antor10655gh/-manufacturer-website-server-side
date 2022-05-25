@@ -1,9 +1,10 @@
 const express = require("express");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
+require("dotenv").config();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
-require("dotenv").config();
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const port = process.env.PORT || 5000;
 
 // middleware
@@ -40,6 +41,7 @@ async function run() {
     const productCollection = client.db("tooltrex").collection("products");
     const orderCollection = client.db("tooltrex").collection("orders");
     const userCollection = client.db("tooltrex").collection("users");
+    const reviewCollection = client.db("tooltrex").collection("review");
 
     // create verifyAdmin function to checking user is admin or not
     const verifyAdmin = async (req, res, next) => {
@@ -53,6 +55,19 @@ async function run() {
         res.status(403).send({ message: "Forbidden" });
       }
     };
+
+    // create api for payment
+    app.post("/create-payment-intent", verificationJWT, async (req, res) => {
+      const order = req.body;
+      const price = order.orderPrice;
+      const amount = price * 100;
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+      res.send({ clientSecret: paymentIntent.client_secret });
+    });
 
     // create api for loaded all products
     app.get("/products", async (req, res) => {
@@ -163,6 +178,28 @@ async function run() {
         res.send(result);
       }
     );
+
+    // create api for delete order from My Order
+    app.delete("/orders/:id", verificationJWT, async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const result = await orderCollection.deleteOne(filter);
+      res.send(result);
+    });
+
+    // create api for show review
+    app.get("/review", async (req, res) => {
+      const query = {};
+      const reviews = await reviewCollection.find(query).toArray();
+      res.send(reviews);
+    });
+
+    // add a review | Post review
+    app.post("/review", async (req, res) => {
+      const review = req.body;
+      const result = await reviewCollection.insertOne(review);
+      res.send(result);
+    });
   } finally {
   }
 }
