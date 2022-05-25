@@ -137,11 +137,24 @@ async function run() {
     );
 
     // create api for add a product from dashboard
-    app.post("/products", verificationJWT, async (req, res) => {
+    app.post("/products", verificationJWT, verifyAdmin, async (req, res) => {
       const product = req.body;
       const result = await productCollection.insertOne(product);
       res.send(result);
     });
+
+    // create api for delete product from manage product
+    app.delete(
+      "/products/:id",
+      verificationJWT,
+      verifyAdmin,
+      async (req, res) => {
+        const id = req.params.id;
+        const filter = { _id: ObjectId(id) };
+        const result = await productCollection.deleteOne(filter);
+        res.send(result);
+      }
+    );
   } finally {
   }
 }
