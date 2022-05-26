@@ -200,6 +200,27 @@ async function run() {
       const result = await reviewCollection.insertOne(review);
       res.send(result);
     });
+
+    // create api for loaded all orders on admin dashboard
+    app.get("/orders", verificationJWT, verifyAdmin, async (req, res) => {
+      const query = {};
+      const cursor = orderCollection.find(query);
+      const orders = await cursor.toArray();
+      res.send(orders);
+    });
+
+    // create api for delete orders from manage all orders route
+    app.delete(
+      "/orders/:id",
+      verificationJWT,
+      verifyAdmin,
+      async (req, res) => {
+        const id = req.params.id;
+        const filter = { _id: ObjectId(id) };
+        const result = await orderCollection.deleteOne(filter);
+        res.send(result);
+      }
+    );
   } finally {
   }
 }
