@@ -42,6 +42,7 @@ async function run() {
     const orderCollection = client.db("tooltrex").collection("orders");
     const userCollection = client.db("tooltrex").collection("users");
     const reviewCollection = client.db("tooltrex").collection("review");
+    const paymentCollection = client.db("tooltrex").collection("payments");
 
     // create verifyAdmin function to checking user is admin or not
     const verifyAdmin = async (req, res, next) => {
@@ -221,6 +222,68 @@ async function run() {
         res.send(result);
       }
     );
+
+    // create api for delete order from user dashboard
+    app.delete("/order/:id", verificationJWT, async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const order = await orderCollection.findOne(filter);
+      const result = await orderCollection.deleteOne(filter);
+      console.log(order);
+      const product = await productCollection.findOne({
+        _id: ObjectId(order.orderProduct),
+      });
+      const newProduct = await productCollection.updateOne(
+        { _id: ObjectId(order.orderProduct) },
+        {
+          $set: {
+            available_quantity:
+              parseInt(product.available_quantity) +
+              parseInt(order.orderQuantity),
+          },
+        }
+      );
+      res.send(result);
+    });
+
+    // create api for update quantity
+    app.patch("/products/:id", verificationJWT, async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const product = req.body;
+      const updateDoc = {
+        $set: {
+          available_quantity: product.available_quantity,
+        },
+      };
+      const result = await productCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    // create api for payment store on database and convert pay button to paid
+    app.patch("/order/:id", verificationJWT, async (req, res) => {
+      const id = req.params.id;
+      const payment = req.body;
+      const filter = { _id: ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          paid: true,
+          transactionId: payment.transactionId,
+        },
+      };
+
+      const updatedOrder = await orderCollection.updateOne(filter, updateDoc);
+      const result = await paymentCollection.insertOne(payment);
+      res.send(updateDoc);
+    });
+
+    //single users info
+    app.get("/userInfo/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      res.send(user);
+    });
   } finally {
   }
 }
